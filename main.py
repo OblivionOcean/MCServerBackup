@@ -2,11 +2,10 @@ import time
 import os
 import watchdog
 from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
 from watchdog.utils.dirsnapshot import DirectorySnapshot, DirectorySnapshotDiff
-import zipfile
 import sys
 import threading
+import tarfile
 
 class HD(watchdog.events.FileSystemEventHandler):
     def __init__(self, aim_path):
@@ -23,11 +22,11 @@ class HD(watchdog.events.FileSystemEventHandler):
         self.timer = None
         if not os.path.exists("./backup"):
             os.mkdir("./backup")
-        zip_file = zipfile.ZipFile('./backup/%s.zip' % (time.strftime('%Y-%m-%d-%H-%M-%S',time.localtime())),'w')
+        tar_file = tarfile.open('./backup/%s.tar.gz' % (time.strftime('%Y-%m-%d-%H-%M-%S',time.localtime())),'w')
         for x in diff.files_modified:
             print(x)
-            zip_file.write(x, compress_type=zipfile.ZIP_DEFLATED)
-        zip_file.close()
+            tar_file.add(x)
+        tar_file.close()
 
     def on_modified(self, event):
         if self.timer:
