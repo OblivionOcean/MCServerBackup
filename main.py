@@ -24,7 +24,7 @@ class HD(watchdog.events.FileSystemEventHandler):
             os.mkdir("./backup")
         tar_file = tarfile.open('./backup/%s.tar.gz' % (time.strftime('%Y-%m-%d-%H-%M-%S',time.localtime())),'w')
         for x in diff.files_modified:
-            print(x)
+            # print(x)
             tar_file.add(x)
         tar_file.close()
 
@@ -34,7 +34,7 @@ class HD(watchdog.events.FileSystemEventHandler):
         self.timer = threading.Timer(120, self.checkSnapshot)
         self.timer.start()
 
-def observe(path="./observing", timer=120):
+def observe(path="", timer=120):
     observer = Observer()
     observer.start()
     event_handler = HD(path)
