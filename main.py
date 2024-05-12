@@ -7,6 +7,7 @@ import sys
 import threading
 import tarfile
 import zipfile
+import shutil
 
 class HD(watchdog.events.FileSystemEventHandler):
     def __init__(self, aim_path, file_type, timing):
@@ -16,8 +17,8 @@ class HD(watchdog.events.FileSystemEventHandler):
         self.aim_path = aim_path
         self.snapshot = DirectorySnapshot(self.aim_path)
         self.second = 120
-        self.method = tarfile.open if file_type == "tar" else zipfile.ZipFile
-        self.ext = "tar.gz" if file_type == "tar" else "zip"
+        self.method = tarfile.open if file_type == "tar" else (zipfile.ZipFile if file_type == "zip" else None)
+        self.ext = "tar.gz" if file_type == "tar" else ("zip" if file_type == "zip" else None) 
 
     def checkSnapshot(self):
         snapshot = DirectorySnapshot(self.aim_path)
@@ -26,15 +27,22 @@ class HD(watchdog.events.FileSystemEventHandler):
         self.timer = None
         if not os.path.exists("./backup"):
             os.mkdir("./backup")
-        reducted_file = self.method('./backup/%s.%s' % (time.strftime('%Y-%m-%d-%H-%M-%S',time.localtime()), self.ext), mode='w')
-        for x in list(diff.files_modified)+list(diff.files_created)+list(diff.files_moved):
-            if self.ext == "tar.gz":
-                reducted_file.add(x)
-                print("file %s is added" % x)
-            else:
-                reducted_file.write(x)
-                print(str(time.strftime('%Y-%m-%d-%H-%M-%S',time.localtime()))+" file %s is added" % x)
-        reducted_file.close()
+        if self.method:
+            reducted_file = self.method('./backup/%s.%s' % (time.strftime('%Y-%m-%d-%H-%M-%S',time.localtime()), self.ext), mode='w')
+            for x in list(diff.files_modified)+list(diff.files_created)+list(diff.files_moved):
+                if self.ext == "tar.gz":
+                    reducted_file.add(x)
+                    print("File %s is added." % x)
+                else:
+                    reducted_file.write(x)
+                    print(str(time.strftime('%Y-%m-%d-%H-%M-%S',time.localtime()))+" File %s is added." % x)
+            reducted_file.close()
+        else:
+            path2 = './backup/%s' % time.strftime('%Y-%m-%d-%H-%M-%S',time.localtime())
+            os.mkdir(path2)
+            for x in list(diff.files_modified)+list(diff.files_created)+list(diff.files_moved):
+                shutil.copy(x, path2)
+                print("File %s is added." % x)
 
     def on_any_event(self, event):
         if self.timer:
@@ -42,7 +50,7 @@ class HD(watchdog.events.FileSystemEventHandler):
         self.timer = threading.Timer(self.timing, self.checkSnapshot)
         self.timer.start()
 
-def observe(path="", timer=120, file_type="tar"):
+def observe(path="", timer=120, file_type=None):
     observer = Observer()
     observer.start()
     event_handler = HD(path, file_type, timer)
